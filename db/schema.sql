@@ -1,0 +1,1 @@
+-- Activeight schema — built in Step 2
