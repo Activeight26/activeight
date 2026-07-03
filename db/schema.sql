@@ -70,3 +70,8 @@ grant select, insert, update, delete on table public.venues to authenticated;
 -- anon may INSERT edit suggestions only; authenticated (you, later) can manage
 grant insert on table public.pending_edits to anon;
 grant select, insert, update, delete on table public.pending_edits to authenticated;
+
+-- GRANT OSM PULL
+-- Grant write access to the service role (used by the secret key / trusted scripts)
+grant select, insert, update, delete on table public.venues to service_role;
+grant select, insert, update, delete on table public.pending_edits to service_role;
