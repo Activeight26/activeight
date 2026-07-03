@@ -59,3 +59,14 @@ create policy "public reads live venues"
 create policy "public can suggest edits"
   on pending_edits for insert
   with check (true);
+
+-- GRANT
+-- Grant API access to the venues table
+-- anon (public visitors) may read; RLS still restricts them to status='live'
+grant select on table public.venues to anon;
+grant select, insert, update, delete on table public.venues to authenticated;
+
+-- Grant API access to pending_edits
+-- anon may INSERT edit suggestions only; authenticated (you, later) can manage
+grant insert on table public.pending_edits to anon;
+grant select, insert, update, delete on table public.pending_edits to authenticated;
