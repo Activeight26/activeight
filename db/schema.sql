@@ -17,7 +17,7 @@ create table venues (
   -- sport-specific detail — NEVER a column
   sport_data    jsonb default '{}'::jsonb,
   -- verification-first lifecycle
-  status        text default 'unverified',  -- unverified | live | closed
+  status        text default 'unverified',  -- unverified | live | closed | out_of_scope
   last_verified date,
   verified_by   text,
   source        text,                     -- 'osm' | 'manual'
