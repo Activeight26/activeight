@@ -32,10 +32,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
+    --text: #6b6375;
+    --text-h: #08060d;
+    --bg: #fff;
+    --border: #e5e4e7;
     --code-bg: #1f2028;
     --accent: #c084fc;
     --accent-bg: rgba(192, 132, 252, 0.15);
@@ -52,12 +52,13 @@
 
 body {
   margin: 0;
+  background: #f9f9f9;
 }
 
 #root {
   max-width: 100%;
   margin: 0 auto;
-  border-inline: 1px solid var(--border);
+  background: #f9f9f9;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

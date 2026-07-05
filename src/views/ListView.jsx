@@ -116,7 +116,7 @@ const SPRING = { layout: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } };
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#F7F9FB",
+    background: "transparent",
     padding: "28px 16px 64px",
     fontFamily: "'Inter', system-ui, sans-serif",
   },
