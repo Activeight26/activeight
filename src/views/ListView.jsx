@@ -2,7 +2,7 @@ import { useState, useRef, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
 import { useNearbyVenues } from "../lib/useNearbyVenues";
 import { cardFor, labelFor, accentFor } from "../sports/registry";
-
+ 
 /* ================================================================== *
  * ExpandingCard
  * ------------------------------------------------------------------ *
@@ -18,11 +18,11 @@ import { cardFor, labelFor, accentFor } from "../sports/registry";
 function ExpandingCard({ children }) {
   const ref = useRef(null);
   const [height, setHeight] = useState("auto");
-
+ 
   useLayoutEffect(() => {
     if (ref.current) setHeight(ref.current.scrollHeight);
   }, [children]);
-
+ 
   return (
     <motion.div
       style={{ overflow: "hidden" }}
@@ -33,7 +33,7 @@ function ExpandingCard({ children }) {
     </motion.div>
   );
 }
-
+ 
 /* ================================================================== *
  * ListView
  * ------------------------------------------------------------------ *
@@ -47,19 +47,19 @@ function ExpandingCard({ children }) {
  * distort anything itself. The actual height change of the expanding
  * card is handled by ExpandingCard above.
  * ================================================================== */
-
+ 
 export default function ListView({ sport = "wakeboard", country = "SE" }) {
   const { venues, loading, error, locationDenied } = useNearbyVenues({ sport, country });
   const [expandedId, setExpandedId] = useState(null);
-
+ 
   const Card = cardFor(sport);
   const sportLabel = labelFor(sport);
   const accentColor = accentFor(sport);
-
+ 
   const handleToggle = (id) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
-
+ 
   if (loading) {
     return (
       <div style={styles.page}>
@@ -67,7 +67,7 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
       </div>
     );
   }
-
+ 
   if (error) {
     return (
       <div style={styles.page}>
@@ -75,7 +75,7 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
       </div>
     );
   }
-
+ 
   return (
     <div style={styles.page}>
       {locationDenied && (
@@ -83,7 +83,7 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
           Location off — showing venues alphabetically.
         </div>
       )}
-
+ 
       {venues.length === 0 ? (
         <div style={styles.status}>No verified venues yet.</div>
       ) : (
@@ -91,7 +91,7 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
           {venues.map((venue) => {
             const isExpanded = expandedId === venue.id;
             const venueWithLabel = { ...venue, sportLabel };
-
+ 
             return (
               <motion.div key={venue.id} layout="position" transition={SPRING}>
                 <ExpandingCard>
@@ -110,14 +110,14 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
     </div>
   );
 }
-
+ 
 const SPRING = { layout: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } };
-
+ 
 const styles = {
   page: {
     minHeight: "100vh",
     background: "transparent",
-    padding: "28px 16px 64px",
+    padding: "16px 16px 64px",
     fontFamily: "'Inter', system-ui, sans-serif",
   },
   locationNote: {
