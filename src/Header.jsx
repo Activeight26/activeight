@@ -4,22 +4,30 @@ import { Menu, X } from "lucide-react";
 /* ================================================================== *
  * Header
  * ------------------------------------------------------------------ *
- * Sticky top chrome for the app. Two rows:
+ * Fixed top chrome for the app shell. It is NOT position:sticky — it's
+ * a plain flex item at the top of the #root flex column. The content
+ * region below it scrolls independently, so the header is always in
+ * place without participating in any scroll. (Sticky + a fixed-height
+ * flex column interacted badly on mobile Safari and left a gap at the
+ * bottom of the map; the app-shell model removes that whole class of
+ * bug.)
+ *
+ * Two rows:
  *   1. Brand row  — logo icon + "Activeight" wordmark (left),
  *                   hamburger menu button (right).
  *   2. View switch — a segmented "List | Map" control, built as an
- *                   accessible tab list (role="tablist"). List is the
- *                   active view; Map is present but disabled until the
- *                   Map view is built, so the control reads as honest:
- *                   it doesn't pretend to toggle something that isn't
- *                   there yet.
+ *                   accessible tab list (role="tablist").
  *
  * Props:
  *   view       "list" | "map"  — current active view (controlled)
  *   onViewChange(next)          — called when a view tab is activated
- *   mapEnabled  boolean         — false until Map view exists; disables
- *                                 the Map tab and dims it
+ *   mapEnabled  boolean         — disables + dims the Map tab when false
+ *   scrolled    boolean         — when true, show the hairline bottom
+ *                                 border (the scrolling content region
+ *                                 reports this, since the header itself
+ *                                 no longer scrolls)
  * ================================================================== */
+
 /* Respect the OS "reduce motion" setting — the tab transition is
  * disabled when the user has asked for less animation. */
 function usePrefersReducedMotion() {
@@ -34,20 +42,14 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-export default function Header({ view = "list", onViewChange, mapEnabled = false }) {
+export default function Header({
+  view = "list",
+  onViewChange,
+  mapEnabled = false,
+  scrolled = false,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
-
-  /* Show a hairline bottom border only once the user has scrolled, so
-   * the header separates from content when floating over it, but sits
-   * flush and borderless at the top. */
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const handleTab = (next) => {
     if (next === "map" && !mapEnabled) return;
@@ -134,8 +136,9 @@ export default function Header({ view = "list", onViewChange, mapEnabled = false
 
 const styles = {
   header: {
-    position: "sticky",
-    top: 0,
+    /* plain flex item — not sticky. flexShrink:0 keeps it from being
+     * squeezed by the flex-growing content region below it. */
+    flexShrink: 0,
     zIndex: 20,
     background: "#f9f9f9",
     fontFamily: "'Inter', system-ui, sans-serif",
@@ -163,9 +166,6 @@ const styles = {
     fontSize: 20,
     fontWeight: 600,
     letterSpacing: "-0.02em",
-    /* Reversed logo gradient (logo runs light-blue → navy; this runs
-     * navy → light-blue) clipped to the text, so the wordmark reads as
-     * part of the same brand mark rather than plain text beside it. */
     background: "linear-gradient(90deg, #0E0F39, #76D6EE)",
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
@@ -207,8 +207,9 @@ const styles = {
     border: "none",
     borderRadius: 999,
     background: "transparent",
-    font: "inherit",
+    fontFamily: "inherit",
     fontSize: 15,
+    fontWeight: 400,
     cursor: "pointer",
     color: "#5A6A82",
     transition: "background 0.18s, color 0.18s, box-shadow 0.18s",
