@@ -1,64 +1,20 @@
-import { useState, useRef, useLayoutEffect } from "react";
-import { motion } from "framer-motion";
+import { useNavigate } from "react-router";
 import { useNearbyVenues } from "../lib/useNearbyVenues";
-import { cardFor, labelFor, accentFor } from "../sports/registry";
-
-/* ================================================================== *
- * ExpandingCard
- * ------------------------------------------------------------------ *
- * Animates a REAL height change (measured via ref), not a scale-based
- * `layout` transform. Framer Motion's `layout` prop fakes size changes
- * by scaling the whole box during the transition — fine for small
- * deltas, but teaser→full is a big jump (a few lines → eight field
- * rows + contacts + badge), so the in-between scale stretches and
- * blurs the text until the transition ends. Animating `height`
- * directly forces the browser to actually reflow content at every
- * frame instead of transforming it, so text stays crisp throughout.
- * ================================================================== */
-function ExpandingCard({ children }) {
-  const ref = useRef(null);
-  const [height, setHeight] = useState("auto");
-
-  useLayoutEffect(() => {
-    if (ref.current) setHeight(ref.current.scrollHeight);
-  }, [children]);
-
-  return (
-    <motion.div
-      style={{ overflow: "hidden" }}
-      animate={{ height }}
-      transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-    >
-      <div ref={ref}>{children}</div>
-    </motion.div>
-  );
-}
+import VenueTeaserCard from "../components/VenueTeaserCard";
 
 /* ================================================================== *
  * ListView
  * ------------------------------------------------------------------ *
- * The first surface. Sport-agnostic: it never mentions wakeboarding.
- * It asks the registry for the right card, the right label, and the
- * right accent color, and hands each venue through them.
- *
- * Accordion expand: only one card is "full" at a time. The outer
- * motion.div uses layout="position" (not plain `layout`) so it only
- * translates neighboring cards to make room — no scale, so it can't
- * distort anything itself. The actual height change of the expanding
- * card is handled by ExpandingCard above.
+ * The first surface: distance-sorted teasers. Sport-agnostic — the
+ * teaser card resolves everything sport-shaped from the registry
+ * itself. Tapping a teaser navigates to the venue's dedicated page
+ * (/venue/:slug); dist_m rides along as router state so the page can
+ * show it without re-asking for GPS.
  * ================================================================== */
 
 export default function ListView({ sport = "wakeboard", country = "SE" }) {
   const { venues, loading, error, locationDenied } = useNearbyVenues({ sport, country });
-  const [expandedId, setExpandedId] = useState(null);
-
-  const Card = cardFor(sport);
-  const sportLabel = labelFor(sport);
-  const accentColor = accentFor(sport);
-
-  const handleToggle = (id) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  };
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -85,33 +41,23 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
       )}
 
       {venues.length === 0 ? (
-        <div style={styles.status}>No verified venues yet.</div>
+        <div style={styles.status}>No venues yet.</div>
       ) : (
         <div style={styles.grid}>
-          {venues.map((venue) => {
-            const isExpanded = expandedId === venue.id;
-            const venueWithLabel = { ...venue, sportLabel };
-
-            return (
-              <motion.div key={venue.id} layout="position" transition={SPRING}>
-                <ExpandingCard>
-                  <Card
-                    venue={venueWithLabel}
-                    variant={isExpanded ? "full" : "teaser"}
-                    accentColor={accentColor}
-                    onToggle={() => handleToggle(venue.id)}
-                  />
-                </ExpandingCard>
-              </motion.div>
-            );
-          })}
+          {venues.map((venue) => (
+            <VenueTeaserCard
+              key={venue.id}
+              venue={venue}
+              onOpen={() =>
+                navigate(`/venue/${venue.slug}`, { state: { dist_m: venue.dist_m } })
+              }
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
-
-const SPRING = { layout: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } };
 
 const styles = {
   page: {

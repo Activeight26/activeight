@@ -1,7 +1,15 @@
 // scripts/import-wakeboard.js
-// Pulls Swedish wake parks from OpenStreetMap (Overpass) and writes them
-// into the venues table as status='unverified' — a lead list, never live data.
-// Safe to re-run: upserts on osm_id, so re-runs update rather than duplicate.
+// Pulls Swedish wake parks from OpenStreetMap (Overpass) into the
+// venues table as a lead list.
+//
+// Ownership rules (why this is NOT a blind upsert):
+//   - NEW osm_id → insert a full lead row (status='draft', hidden from
+//     the public until curated) + a venue_links row from the OSM tags.
+//   - EXISTING osm_id → update ONLY raw_osm_tags, the machine-owned
+//     archive column. Everything else on an existing row (name, status,
+//     links, profile, location fixes) is hand-curated and must never be
+//     overwritten by a re-import.
+// Safe to re-run any time.
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
@@ -67,7 +75,16 @@ async function run() {
   const elements = data.elements || [];
   console.log(`Overpass returned ${elements.length} element(s).`);
 
+  // One round trip: which osm_ids do we already have?
+  const { data: existing, error: existingError } = await supabase
+    .from('venues')
+    .select('id, osm_id')
+    .not('osm_id', 'is', null);
+  if (existingError) throw new Error(`Could not read existing venues: ${existingError.message}`);
+  const existingByOsmId = new Map(existing.map((v) => [v.osm_id, v.id]));
+
   let inserted = 0;
+  let refreshed = 0;
   let skipped = 0;
 
   for (const el of elements) {
@@ -79,32 +96,61 @@ async function run() {
     const name = tags.name;
     if (!name) { skipped++; continue; }
 
-    const row = {
-      name,
-      location: `POINT(${lng} ${lat})`,
-      sport: 'wakeboard',
-      country: 'SE',
-      source: 'osm',
-      status: 'unverified',
-      sport_data: {},
-      osm_id: `${el.type}/${el.id}`,
-      website: tags.website || tags['contact:website'] || null,
-      phone: tags.phone || tags['contact:phone'] || null,
-    };
+    const osmId = `${el.type}/${el.id}`;
+    const existingId = existingByOsmId.get(osmId);
 
-    const { error } = await supabase
+    if (existingId) {
+      // Curated row: refresh the machine-owned archive only.
+      const { error } = await supabase
+        .from('venues')
+        .update({ raw_osm_tags: tags })
+        .eq('id', existingId);
+      if (error) {
+        console.error(`  Failed to refresh tags for "${name}":`, error.message);
+      } else {
+        refreshed++;
+        console.log(`  Refreshed tags: ${name}`);
+      }
+      continue;
+    }
+
+    // New lead: full insert, hidden as draft until curated.
+    const { data: created, error } = await supabase
       .from('venues')
-      .upsert(row, { onConflict: 'osm_id' });
+      .insert({
+        name,
+        location: `POINT(${lng} ${lat})`,
+        sport: 'wakeboard',
+        country: 'SE',
+        source: 'osm',
+        status: 'draft',
+        osm_id: osmId,
+        raw_osm_tags: tags,
+      })
+      .select('id')
+      .single();
 
     if (error) {
-      console.error(`  Failed to upsert "${name}":`, error.message);
-    } else {
-      inserted++;
-      console.log(`  Upserted: ${name}`);
+      console.error(`  Failed to insert "${name}":`, error.message);
+      continue;
     }
+
+    const website = tags.website || tags['contact:website'] || null;
+    const phone = tags.phone || tags['contact:phone'] || null;
+    if (website || phone) {
+      const { error: linksError } = await supabase
+        .from('venue_links')
+        .insert({ venue_id: created.id, website, phone });
+      if (linksError) {
+        console.error(`  Inserted "${name}" but failed to write links:`, linksError.message);
+      }
+    }
+
+    inserted++;
+    console.log(`  Inserted draft: ${name}`);
   }
 
-  console.log(`\nDone. Upserted ${inserted}, skipped ${skipped} (no name/coords).`);
+  console.log(`\nDone. Inserted ${inserted} new draft(s), refreshed tags on ${refreshed}, skipped ${skipped} (no name/coords).`);
 }
 
 run().catch((err) => {

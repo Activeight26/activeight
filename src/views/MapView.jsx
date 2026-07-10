@@ -1,27 +1,28 @@
 import { useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import * as maptilersdk from "@maptiler/sdk";
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 import { useNearbyVenues } from "../lib/useNearbyVenues";
-import { cardFor, labelFor, accentFor } from "../sports/registry";
+import { accentFor } from "../sports/registry";
+import VenueTeaserCard from "../components/VenueTeaserCard";
 
 /* ================================================================== *
  * MapView
  * ------------------------------------------------------------------ *
- * The map surface. Sport-agnostic, same as ListView: it reads the same
- * useNearbyVenues hook and gets the card via cardFor(sport) — it never
- * names wakeboarding. Differences from the list are layout only:
- * venues become pins instead of rows, and a tapped pin slides the card
- * up from the bottom as a sheet instead of expanding in place.
+ * The map surface. Reads the same useNearbyVenues teasers as the
+ * list; venues become pins. A tapped pin opens the venue's TEASER
+ * card in an overlay — tapping the teaser (same gesture as in the
+ * list) navigates to the dedicated /venue/:slug page.
  *
- * Centering: on the user's GPS position when granted; on a Sweden-wide
- * view fitting all pins when denied — so the map is useful either way,
- * mirroring the list's graceful no-location fallback.
+ * Centering: on the user's GPS position when granted; on a
+ * Sweden-wide view fitting all pins when denied — mirroring the
+ * list's graceful no-location fallback.
  *
- * Pins: a custom logo-style marker (the A8 mark) tinted with the
- * sport's accent color, so the map carries the same brand + category
- * language as the cards.
+ * Pins: a custom logo-style marker tinted with the sport's accent
+ * color, so the map carries the same brand + category language as
+ * the cards.
  * ================================================================== */
 
 const SWEDEN_CENTER = { lng: 15.5, lat: 62.0 }; // rough national centroid
@@ -30,14 +31,11 @@ const SWEDEN_ZOOM = 4.2;
 export default function MapView({ sport = "wakeboard", country = "SE" }) {
   const { venues, loading, error, locationDenied } = useNearbyVenues({ sport, country });
   const [selected, setSelected] = useState(null);
+  const navigate = useNavigate();
 
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
-
-  const Card = cardFor(sport);
-  const sportLabel = labelFor(sport);
-  const accentColor = accentFor(sport);
 
   const apiKey = import.meta.env.VITE_MAPTILER_KEY;
 
@@ -75,7 +73,7 @@ export default function MapView({ sport = "wakeboard", country = "SE" }) {
     venues.forEach((venue) => {
       if (venue.lat == null || venue.lng == null) return;
 
-      const el = buildPinElement(accentColor);
+      const el = buildPinElement(accentFor(venue.sport));
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         setSelected(venue);
@@ -99,13 +97,13 @@ export default function MapView({ sport = "wakeboard", country = "SE" }) {
         map.fitBounds(bounds, { padding: 64, maxZoom: 8, duration: 0 });
       }
     } else if (!locationDenied && venues.length > 0) {
-      // venues[0] is nearest (hook sorts by distance when GPS is granted)
+      // venues[0] is nearest (the RPC sorts by distance when GPS is granted)
       const nearest = venues[0];
       if (nearest.lat != null && nearest.lng != null) {
         map.flyTo({ center: [nearest.lng, nearest.lat], zoom: 8, duration: 0 });
       }
     }
-  }, [venues, loading, error, locationDenied, accentColor]);
+  }, [venues, loading, error, locationDenied]);
 
   return (
     <div style={styles.wrap}>
@@ -125,10 +123,8 @@ export default function MapView({ sport = "wakeboard", country = "SE" }) {
         <div style={styles.loadingPill}>Locating…</div>
       )}
 
-      {/* Tapped-pin detail: card centered on a dimmed, scrollable
-       * backdrop. When the card is taller than the screen the whole
-       * overlay scrolls and the card travels with it (vertical pan of
-       * the entire card). Close via the X on the card's corner or by
+      {/* Tapped-pin teaser: card centered on a dimmed backdrop. Tapping
+       * the teaser navigates to the venue page; close via the X or by
        * tapping the dim area. */}
       <AnimatePresence>
         {selected && (
@@ -156,11 +152,11 @@ export default function MapView({ sport = "wakeboard", country = "SE" }) {
               >
                 <X size={20} />
               </button>
-              <Card
-                venue={{ ...selected, sportLabel }}
-                variant="full"
-                accentColor={accentColor}
-                onToggle={() => setSelected(null)}
+              <VenueTeaserCard
+                venue={selected}
+                onOpen={() =>
+                  navigate(`/venue/${selected.slug}`, { state: { dist_m: selected.dist_m } })
+                }
               />
             </motion.div>
           </motion.div>

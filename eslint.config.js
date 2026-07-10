@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Node scripts (OSM import etc.) — process, __dirname, ...
+    files: ['scripts/**/*.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])
