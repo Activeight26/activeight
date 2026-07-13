@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 /* ================================================================== *
@@ -12,49 +12,20 @@ import { Menu, X } from "lucide-react";
  * bottom of the map; the app-shell model removes that whole class of
  * bug.)
  *
- * Two rows:
- *   1. Brand row  — logo icon + "Activeight" wordmark (left),
- *                   hamburger menu button (right).
- *   2. View switch — a segmented "List | Map" control, built as an
- *                   accessible tab list (role="tablist").
+ * One row: logo + wordmark (left), hamburger menu (right).
+ *
+ * The List|Map segmented control used to live here as a second row. It
+ * moved OUT to a floating pill in App.jsx — header chrome is expensive
+ * on this screen, because the metric that matters is how many cards land
+ * above the fold, and that second row cost most of a card.
  *
  * Props:
- *   view       "list" | "map"  — current active view (controlled)
- *   onViewChange(next)          — called when a view tab is activated
- *   mapEnabled  boolean         — disables + dims the Map tab when false
- *   scrolled    boolean         — when true, show the hairline bottom
- *                                 border (the scrolling content region
- *                                 reports this, since the header itself
- *                                 no longer scrolls)
+ *   scrolled  boolean — when true, show the hairline bottom border (the
+ *                       scrolling content region reports this, since the
+ *                       header itself no longer scrolls)
  * ================================================================== */
-
-/* Respect the OS "reduce motion" setting — the tab transition is
- * disabled when the user has asked for less animation. */
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  return reduced;
-}
-
-export default function Header({
-  view = "list",
-  onViewChange,
-  mapEnabled = false,
-  scrolled = false,
-}) {
+export default function Header({ scrolled = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const reducedMotion = usePrefersReducedMotion();
-
-  const handleTab = (next) => {
-    if (next === "map" && !mapEnabled) return;
-    onViewChange?.(next);
-  };
 
   return (
     <header
@@ -65,7 +36,6 @@ export default function Header({
           : "0.5px solid transparent",
       }}
     >
-      {/* Row 1 — brand + menu */}
       <div style={styles.brandRow}>
         <div style={styles.brand}>
           <img src="/A8_Logo.svg" alt="" style={styles.logo} />
@@ -81,46 +51,6 @@ export default function Header({
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
-      </div>
-
-      {/* Row 2 — segmented List | Map control (tabs) */}
-      <div style={styles.switchRow}>
-        <div
-          role="tablist"
-          aria-label="Choose result view"
-          style={styles.segment}
-        >
-          <button
-            role="tab"
-            type="button"
-            aria-selected={view === "list"}
-            tabIndex={view === "list" ? 0 : -1}
-            onClick={() => handleTab("list")}
-            style={{
-              ...styles.tab,
-              transition: reducedMotion ? "none" : styles.tab.transition,
-              ...(view === "list" ? styles.tabActive : styles.tabInactive),
-            }}
-          >
-            List
-          </button>
-          <button
-            role="tab"
-            type="button"
-            aria-selected={view === "map"}
-            aria-disabled={!mapEnabled}
-            tabIndex={view === "map" ? 0 : -1}
-            onClick={() => handleTab("map")}
-            style={{
-              ...styles.tab,
-              transition: reducedMotion ? "none" : styles.tab.transition,
-              ...(view === "map" ? styles.tabActive : styles.tabInactive),
-              ...(mapEnabled ? {} : styles.tabDisabled),
-            }}
-          >
-            Map
-          </button>
-        </div>
       </div>
 
       {/* Placeholder menu sheet — real content (FAQ, About) comes later.
@@ -184,46 +114,6 @@ const styles = {
     cursor: "pointer",
     borderRadius: 10,
     flexShrink: 0,
-  },
-  switchRow: {
-    maxWidth: 640,
-    margin: "0 auto",
-    padding: "0 16px 12px",
-    display: "flex",
-    justifyContent: "center",
-  },
-  segment: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 4,
-    padding: 4,
-    borderRadius: 999,
-    background: "#ECEFF2",
-    width: "100%",
-    maxWidth: 280,
-  },
-  tab: {
-    minHeight: 40,
-    border: "none",
-    borderRadius: 999,
-    background: "transparent",
-    fontFamily: "inherit",
-    fontSize: 15,
-    fontWeight: 400,
-    cursor: "pointer",
-    color: "#5A6A82",
-    transition: "background 0.18s, color 0.18s, box-shadow 0.18s",
-  },
-  tabActive: {
-    background: "#FFFFFF",
-    color: "#0A0E17",
-    fontWeight: 600,
-    boxShadow: "0 1px 3px rgba(10,14,23,0.10)",
-  },
-  tabInactive: {},
-  tabDisabled: {
-    color: "#B4BDC9",
-    cursor: "not-allowed",
   },
   menuSheet: {
     maxWidth: 640,

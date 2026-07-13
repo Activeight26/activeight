@@ -428,3 +428,19 @@ Roughly a 4-step change, no new components:
 - **Filters:** the normalized, validated schema exists precisely to make
   sport-field and facility filtering possible; the filter UI itself is future
   work.
+
+---
+
+## Verification status
+
+Verification pass (2026-07-10): confirmed via the anon key against the live app —
+
+- RLS row-gating: anon reads only `status='published'`; `out_of_scope` venues hidden.
+
+- Child-table leak test: a hidden venue's `venue_links` unreachable by direct `venue_id`.
+
+- Column-level grant: `select('*')` and `notes_private` denied (42501); granted columns flow.
+
+- Teaser RPC `nearby_venues`: distance sort with coords, name-sort + null `dist_m` on GPS-deny, `profile` keys match `wakeboard/config.js`.
+
+- **Deferred to first Vercel deploy:** deep-link refresh on `/venue/:slug` (vercel.json rewrite), cold-load distance absence, not-found on hidden/nonexistent slug.

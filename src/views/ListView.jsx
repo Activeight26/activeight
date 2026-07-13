@@ -62,7 +62,10 @@ export default function ListView({ sport = "wakeboard", country = "SE" }) {
 const styles = {
   page: {
     background: "transparent",
-    padding: "16px 16px 64px",
+    /* bottom padding clears the floating view-switch pill in App.jsx
+     * (44px pill + 20px offset + breathing room), so the last card is
+     * never trapped underneath it. */
+    padding: "16px 16px 96px",
     fontFamily: "'Inter', system-ui, sans-serif",
   },
   locationNote: {
