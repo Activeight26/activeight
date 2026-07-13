@@ -16,10 +16,9 @@ const VENUE_COLUMNS =
  * doesn't exist / isn't published (RLS hides everything else):
  *
  *   { ...venues columns,                      // flat
- *     links:      {...} | null,               // venue_links row
- *     facilities: {...} | null,               // venue_facilities row
- *     images:     [...],                      // ordered by display_order
- *     profile:    {...} | null }              // sport profile row
+ *     links:   {...} | null,                  // venue_links row
+ *     images:  [...],                         // ordered by display_order
+ *     profile: {...} | null }                 // sport profile row
  *
  * Nested, not flat: sport fields can't collide with venue columns,
  * and the object mirrors the tables it came from. Two round trips
@@ -31,7 +30,6 @@ export async function fetchVenue(slug) {
     .select(
       `${VENUE_COLUMNS},
        links:venue_links(*),
-       facilities:venue_facilities(*),
        images:venue_images(*)`
     )
     .eq("slug", slug)
@@ -52,11 +50,10 @@ export async function fetchVenue(slug) {
     profile = data;
   }
 
-  const { links, facilities, images, ...core } = venue;
+  const { links, images, ...core } = venue;
   return {
     ...core,
     links: links ?? null,
-    facilities: facilities ?? null,
     images: [...(images ?? [])].sort((a, b) => a.display_order - b.display_order),
     profile,
   };

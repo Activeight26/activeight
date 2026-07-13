@@ -1,27 +1,15 @@
--- ============================================================
--- 003 — READ LAYER (Phase 3): nearby_venues RPC, teaser shape
---
--- One call does everything distance-shaped in the DB: filter to
--- published + sport + country, ST_Distance, order by distance
--- (name when no GPS). Returns the teaser contract:
---
---   id, slug, name, city, sport, category, verification_source,
---   last_verified, lng, lat, dist_m, cover_image_url, profile
---
--- `profile` is the venue's whole sport-profile row as jsonb —
--- deliberately NOT sport-specific top-level columns, so the
--- contract never changes as sports are added. JS resolves the
--- config's teaserFields against it. Adding a sport = adding one
--- branch to the CASE below (part of the same migration that
--- creates the sport's profile table).
---
--- security invoker (default): runs as anon, so RLS applies on
--- venues and every child table — the WHERE status='published'
--- is defense in depth, not the only gate.
--- Requires 001 + 002. Safe to re-run.
--- ============================================================
-
--- Return type changes, so the old function can't be replaced in place.
+/* nearby_venues — the teaser RPC.
+ *
+ * SECURITY INVOKER (the default): runs as the caller, so RLS and column
+ * grants apply INSIDE the function. It has no elevated privilege — it
+ * cannot return anon-forbidden columns (osm_id, raw_osm_tags,
+ * notes_private) even from in here. Everything below is within anon's
+ * grants.
+ *
+ * Return-type changes require a DROP first — Postgres refuses to
+ * `create or replace` a function whose `returns table (...)` signature
+ * changed. Hence the drop, the re-grant, and the schema reload.
+ */
 drop function if exists public.nearby_venues(double precision, double precision, text, text);
 
 create function public.nearby_venues(
@@ -43,6 +31,7 @@ returns table (
   lat                 double precision,
   dist_m              double precision,
   cover_image_url     text,
+  facilities          jsonb,
   profile             jsonb
 )
 language sql
@@ -66,6 +55,19 @@ as $$
     (select i.image_url from public.venue_images i
       where i.venue_id = v.id and i.is_cover
       limit 1) as cover_image_url,
+    /* Facilities as a whole-row JSON object, deliberately matching the
+     * shape fetchVenue() produces for the venue page. Both surfaces then
+     * speak ONE contract — `facilities?.rental === true` — so the same
+     * access pattern works in the teaser card and in FacilityList, and a
+     * new facility column appears on both without touching either.
+     *
+     * Three-state booleans are preserved as-is (true = present,
+     * false = confirmed absent, null = unknown). The RPC does not
+     * collapse null into false — they are not the same claim, and the
+     * UI is what decides how each renders. */
+    (select to_jsonb(f) - 'venue_id' - 'created_at' - 'updated_at'
+       from public.venue_facilities f
+      where f.venue_id = v.id) as facilities,
     case v.sport
       when 'wakeboard' then
         (select to_jsonb(wp) - 'venue_id' - 'created_at' - 'updated_at'
@@ -83,5 +85,7 @@ $$;
 grant execute on function public.nearby_venues(double precision, double precision, text, text)
   to anon, authenticated;
 
--- Make PostgREST pick up the new function signature immediately.
+/* PostgREST caches the schema — without this, the new `facilities`
+ * column simply won't appear in the response, which looks exactly like
+ * a broken query. */
 notify pgrst, 'reload schema';

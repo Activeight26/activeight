@@ -26,13 +26,20 @@ body {
   background: #f9f9f9;
 }
 
+/* Native document scrolling. #root is a plain block that grows with its
+ * content — no fixed height, no inner scroll container, no viewport
+ * math. The document is the one and only scroller, which is what the
+ * browser does by default and what makes the whole class of
+ * scroll-chaining bug impossible.
+ *
+ * (This replaced a 100dvh flex-column "app shell". That model was
+ * adopted to fix a gap under the map on mobile Safari — it did not fix
+ * it, and it cost a second competing scroller, which detached the
+ * header and broke list scrolling. Reverted deliberately.) */
 #root {
   max-width: 100%;
   margin: 0 auto;
   background: #f9f9f9;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
 }
 

@@ -8,14 +8,17 @@ import Chip from "../components/Chip";
 import VerificationBadge from "../components/VerificationBadge";
 import ProfileFields from "../components/ProfileFields";
 import ContactLinks from "../components/ContactLinks";
-import FacilityList from "../components/FacilityList";
 
 /* /venue/:slug — the dedicated venue page, one component for every
- * sport. Universal parts (name, place, images, facilities, links,
- * badge) render directly; the sport-specific block is ProfileFields
- * driven by the sport's config, plus any `extras` components the
- * config lists. No `if (sport === ...)` in here — that branch lives
- * in the config/registry.
+ * sport. Universal parts (name, place, images, links, badge) render
+ * directly; the sport-specific block is ProfileFields driven by the
+ * sport's config, plus any `extras` components the config lists.
+ * No `if (sport === ...)` in here — that branch lives in the
+ * config/registry.
+ *
+ * Facilities are deliberately absent: they were removed as a
+ * maintenance load that couldn't be kept true. The venue's own
+ * website answers those questions and is always current.
  *
  * dist_m arrives via router state when the user came from a teaser
  * (list or map). On a cold deep-link there's no distance — the row
@@ -124,13 +127,6 @@ export default function VenuePage() {
         {(config?.extras ?? []).map((Extra, i) => (
           <Extra key={i} venue={venue} accentColor={accentColor} />
         ))}
-
-        {venue.facilities && (
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>Facilities</h2>
-            <FacilityList facilities={venue.facilities} />
-          </section>
-        )}
 
         {venue.links && (
           <section style={styles.section}>

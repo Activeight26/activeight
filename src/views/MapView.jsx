@@ -190,11 +190,12 @@ const styles = {
   wrap: {
     position: "relative",
     width: "100%",
-    /* Fills App's flex-column content region (the app's scroll area).
-     * The header is a plain flex item above that region, so this simply
-     * grows to fill whatever height is left — no viewport math needed. */
-    flex: "1 1 auto",
-    minHeight: 0,
+    /* The app no longer has a flex-column shell to grow into, so the map
+     * needs an explicit height. 100dvh minus the sticky header's height
+     * (~52px: 28px logo + 12px padding top/bottom) fills the screen
+     * without pushing the document taller than the viewport — so the map
+     * page doesn't scroll, while list and venue pages still do. */
+    height: "calc(100dvh - 52px)",
     overflow: "hidden",
     fontFamily: "'Inter', system-ui, sans-serif",
   },

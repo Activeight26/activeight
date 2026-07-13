@@ -4,13 +4,13 @@ import { Menu, X } from "lucide-react";
 /* ================================================================== *
  * Header
  * ------------------------------------------------------------------ *
- * Fixed top chrome for the app shell. It is NOT position:sticky — it's
- * a plain flex item at the top of the #root flex column. The content
- * region below it scrolls independently, so the header is always in
- * place without participating in any scroll. (Sticky + a fixed-height
- * flex column interacted badly on mobile Safari and left a gap at the
- * bottom of the map; the app-shell model removes that whole class of
- * bug.)
+ * Sticky top chrome. The document scrolls natively; the header sticks
+ * to the top of the viewport as it goes.
+ *
+ * (It was previously a plain flex item inside a fixed-height app shell.
+ * That shell was removed — it never fixed the mobile-Safari map gap it
+ * was introduced for, and it created a second competing scroller that
+ * broke list scrolling and detached the header. Native scroll is back.)
  *
  * One row: logo + wordmark (left), hamburger menu (right).
  *
@@ -18,24 +18,12 @@ import { Menu, X } from "lucide-react";
  * moved OUT to a floating pill in App.jsx — header chrome is expensive
  * on this screen, because the metric that matters is how many cards land
  * above the fold, and that second row cost most of a card.
- *
- * Props:
- *   scrolled  boolean — when true, show the hairline bottom border (the
- *                       scrolling content region reports this, since the
- *                       header itself no longer scrolls)
  * ================================================================== */
-export default function Header({ scrolled = false }) {
+export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header
-      style={{
-        ...styles.header,
-        borderBottom: scrolled
-          ? "0.5px solid #E2E7EC"
-          : "0.5px solid transparent",
-      }}
-    >
+    <header style={styles.header}>
       <div style={styles.brandRow}>
         <div style={styles.brand}>
           <img src="/A8_Logo.svg" alt="" style={styles.logo} />
@@ -66,9 +54,8 @@ export default function Header({ scrolled = false }) {
 
 const styles = {
   header: {
-    /* plain flex item — not sticky. flexShrink:0 keeps it from being
-     * squeezed by the flex-growing content region below it. */
-    flexShrink: 0,
+    position: "sticky",
+    top: 0,
     zIndex: 20,
     background: "#f9f9f9",
     fontFamily: "'Inter', system-ui, sans-serif",
