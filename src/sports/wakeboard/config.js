@@ -13,9 +13,12 @@ import WakeboardPlaceholder from "./Placeholder";
  *                collapses a set to its span ("Beginner–Advanced")
  *                rather than listing every member.
  *   unit         appended to text values ("m" → "180 m")
- *   important    empty + important → "Unknown" chip; empty otherwise → row hidden
  *   valueLabels  raw DB value → display string (chips); unmapped values
  *                pass through raw so new DB values degrade readably
+ *
+ * SILENT OMISSION: an empty field is not rendered at all. There is no
+ * `important` flag and no "Unknown" chip — those were removed because a
+ * placeholder in a scan surface is noise competing with real signal.
  *
  * `placeholder` is the sport's card artwork — shown in the teaser's
  * photo band when a venue has no real photo. The card asks the config
@@ -49,14 +52,12 @@ export default {
       key: "cable_type",
       label: "Cable type",
       type: "chips",
-      important: true,
       valueLabels: { full_size: "Full-size", system_2_0: "System 2.0" },
     },
     {
       key: "participant_level",
       label: "Rider level",
       type: "range",
-      important: true,
       order: ["beginner", "intermediate", "advanced"],
       valueLabels: {
         beginner: "Beginner",

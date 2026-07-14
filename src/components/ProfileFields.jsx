@@ -7,26 +7,27 @@ import { formatFieldValues } from "../lib/format";
  * venue's profile object. No sport is ever named in here. */
 
 export function FieldRow({ label, values }) {
-  const unknown = values.length === 0;
   return (
     <div style={{ textAlign: "left" }}>
       <div style={{ fontSize: 13, color: "#8B9AB0", marginBottom: 8 }}>{label}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {unknown
-          ? <Chip variant="unknown">Unknown</Chip>
-          : values.map((v, i) => <Chip key={i}>{v}</Chip>)}
+        {values.map((v, i) => <Chip key={i}>{v}</Chip>)}
       </div>
     </div>
   );
 }
 
-/* All of a sport's field rows, in config order. Empty-field rule:
- * important + empty → "Unknown" chip (an honest gap); not important
- * + empty → the row is hidden entirely. */
+/* All of a sport's field rows, in config order.
+ *
+ * SILENT OMISSION: an empty field is not rendered. No dash, no "N/A",
+ * no "Unknown" chip, no substituted value — the row simply isn't there.
+ * A blank space is honest; a placeholder is noise competing with real
+ * signal, and the scan-and-filter loop this product rests on depends on
+ * every visible token meaning something. */
 export default function ProfileFields({ config, profile }) {
   const rows = (config?.fields ?? [])
     .map((field) => ({ field, values: formatFieldValues(field, profile?.[field.key]) }))
-    .filter(({ field, values }) => values.length > 0 || field.important);
+    .filter(({ values }) => values.length > 0);
 
   if (rows.length === 0) return null;
   return (
